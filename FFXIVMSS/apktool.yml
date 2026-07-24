@@ -1,0 +1,18 @@
+version: 3.0.3
+apkFileName: FFXIVMSAPP.apk
+usesFramework:
+  ids:
+  - 1
+sdkInfo:
+  minSdkVersion: 21
+  targetSdkVersion: 30
+versionInfo:
+  versionCode: 1
+  versionName: 0.9
+resourcesInfo:
+  packageId: 127
+  keepRawValues: true
+doNotCompress:
+- arsc
+- png
+- assets/img.zip
