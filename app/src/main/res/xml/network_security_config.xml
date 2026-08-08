@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 允许局域网明文 HTTP（手机与电脑在同一 WiFi，收发消息走 http://） -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

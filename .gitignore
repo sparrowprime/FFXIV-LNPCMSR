@@ -1,0 +1,25 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android
+local.properties
+*.apk
+*.aab
+captures/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Kotlin 增量编译缓存
+.kotlin/
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# Deep Code 项目配置
+/.deepcode
