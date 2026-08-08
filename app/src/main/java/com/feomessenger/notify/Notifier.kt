@@ -3,11 +3,14 @@ package com.feomessenger.notify
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.feomessenger.MainActivity
 import com.feomessenger.data.ChatMessage
 
 /**
@@ -50,6 +53,19 @@ object Notifier {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
+    /** 点击通知 → 直接打开主界面 */
+    private fun contentIntent(context: Context): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
     /** 收到真实消息时弹通知：一行内容，与聊天区格式一致 */
     fun showMessage(context: Context, msg: ChatMessage) {
         if (!hasPermission(context)) return
@@ -61,6 +77,7 @@ object Notifier {
                 .setContentTitle(title)
                 .setContentText(msg.content)
                 .setStyle(NotificationCompat.BigTextStyle().bigText("[${msg.time}] ${msg.content}"))
+                .setContentIntent(contentIntent(context))
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .build()
@@ -76,6 +93,7 @@ object Notifier {
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle("FeoMessenger")
                 .setContentText(if (online) "已连接电脑" else "已离线，请检查电脑端")
+                .setContentIntent(contentIntent(context))
                 .setAutoCancel(true)
                 .build()
         )
@@ -87,6 +105,7 @@ object Notifier {
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("小树枝信使")
             .setContentText("运行中")
+            .setContentIntent(contentIntent(context))
             .setOngoing(true)   // 不可滑除
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()

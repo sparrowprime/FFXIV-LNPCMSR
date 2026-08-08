@@ -159,6 +159,8 @@ class RelayService : Service() {
         startHttpServer()
         refreshServerAddress()
         startHeartbeat()
+        // 启动时立即尝试连接电脑，不用等心跳循环的第一个间隔（离线时 60 秒）
+        connectOnStart()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -219,6 +221,17 @@ class RelayService : Service() {
     }
 
     // ---------- 心跳 ----------
+
+    /** 启动时立即尝试连接电脑：有已保存的电脑 IP 就马上发验证，否则提示去设置 */
+    private fun connectOnStart() {
+        val ip = Settings.pcIp
+        if (ip.isBlank()) {
+            appendSystemMessage("未设置电脑IP，请到设置中填写或自动扫描")
+            return
+        }
+        appendSystemMessage("正在连接电脑 $ip …")
+        sendPing()
+    }
 
     private fun startHeartbeat() {
         heartbeatJob?.cancel()
