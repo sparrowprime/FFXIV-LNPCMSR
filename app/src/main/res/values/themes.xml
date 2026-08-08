@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 启动窗口主题：与聊天区背景一致的深灰 -->
+    <style name="Theme.XiaoShuZhi" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF696969</item>
+    </style>
+</resources>
