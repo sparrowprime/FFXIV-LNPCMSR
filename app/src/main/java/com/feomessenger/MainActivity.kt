@@ -50,6 +50,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** 进入前台：标记前台状态、清除本 app 的消息/状态通知（服务常驻通知保留） */
+    override fun onResume() {
+        super.onResume()
+        AppState.foreground = true
+        Notifier.cancelAll(this)
+    }
+
+    /** 离开前台：标记后台状态（新消息恢复弹通知） */
+    override fun onPause() {
+        super.onPause()
+        AppState.foreground = false
+    }
+
     /** Android 13+ 运行时申请通知权限 */
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= 33 && !Notifier.hasPermission(this)) {

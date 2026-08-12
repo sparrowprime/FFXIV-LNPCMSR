@@ -22,11 +22,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.XiaoShuZhi">
 
-        <!-- 主界面 -->
+        <!-- 主界面（锁定竖屏运行，禁止转横屏） -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden"
+            android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

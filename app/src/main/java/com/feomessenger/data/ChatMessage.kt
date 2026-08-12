@@ -21,12 +21,17 @@ data class ChatMessage(
     /** 消息内容 */
     val content: String,
 ) {
-    /** 是否是内部验证消息（心跳 / 发现电脑），不显示、不通知 */
-    fun isInternal(): Boolean = content == PING_TEXT || content.startsWith(DISCOVER_PREFIX)
+    /** 是否是内部验证消息（启动验证 / 测试验证 / 发现电脑），不显示、不通知 */
+    fun isInternal(): Boolean =
+        content == PING_TEXT_ONLINE || content == PING_TEXT_TEST || content.startsWith(DISCOVER_PREFIX)
 
     companion object {
-        /** 心跳消息内容：电脑把游戏内默语转回来后，内容与这个相同 */
-        const val PING_TEXT = "菲奥在吗"
+        /** 启动验证消息内容：App 启动时发 "/e 菲奥已上线"，电脑把游戏内默语转回来后内容与此相同 */
+        const val PING_TEXT_ONLINE = "菲奥已上线"
+        /** 测试验证消息内容：手动点击测试按钮发 "/e 菲奥在吗" 验证连接 */
+        const val PING_TEXT_TEST = "菲奥在吗"
+        /** 离线消息内容：服务停止时发 "/e 菲奥已离线" 告知电脑端 */
+        const val PING_TEXT_OFFLINE = "菲奥已离线"
         /** 发现电脑消息前缀：内容形如 "电脑IP：192.168.2.5，手机IP：192.168.2.112" */
         const val DISCOVER_PREFIX = "电脑IP："
     }

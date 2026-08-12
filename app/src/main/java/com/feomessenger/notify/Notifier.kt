@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.RingtoneManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -51,6 +52,26 @@ object Notifier {
         return ContextCompat.checkSelfPermission(
             context, android.Manifest.permission.POST_NOTIFICATIONS
         ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    /** 清除本 app 的提醒类通知（消息 + 状态）；保留前台服务常驻通知 */
+    fun cancelAll(context: Context) {
+        val nm = NotificationManagerCompat.from(context)
+        nm.cancel(NOTIF_ID_MESSAGE)
+        nm.cancel(NOTIF_ID_STATUS)
+    }
+
+    /** 播放一条消息通知音效（App 在前台时用：只响音效，不弹通知） */
+    fun playMessageSound(context: Context) {
+        try {
+            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                ?: return
+            val ringtone = RingtoneManager.getRingtone(context, uri)
+                ?: return
+            ringtone.play()
+        } catch (e: Exception) {
+            // 音效播放失败不影响主流程
+        }
     }
 
     /** 点击通知 → 直接打开主界面 */

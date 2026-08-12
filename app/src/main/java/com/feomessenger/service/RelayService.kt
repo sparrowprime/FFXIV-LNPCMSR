@@ -20,7 +20,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -30,15 +29,16 @@ import java.util.Locale
  * 核心服务：
  * - 持有 HTTP 服务器（端口 2026），接收电脑转发来的消息
  * - 后台常驻（前台服务，除非开启极简模式）
- * - 心跳保活：每 10 分钟发 "/e 菲奥在吗"，20 秒未收到回传 → 离线
+ * - 启动时自动验证连接电脑（无心跳周期）
  * - 子网扫描：发现电脑 IP
  */
 class RelayService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var server: RelayHttpServer? = null
-    private var heartbeatJob: Job? = null
     private var pingTimeoutJob: Job? = null
+    /** 启动时首次自动连接是否静默（成功时不弹"已连接"提醒） */
+    private var silentFirstConnect = true
 
     companion object {
         private var instance: RelayService? = null
@@ -128,6 +128,20 @@ class RelayService : Service() {
             }
         }
 
+        /** 测试按钮：发送 "/e 菲奥在吗" 验证连接，收到回传后在屏幕显示"小树枝在线中" */
+        fun testConnection() {
+            val srv = instance ?: return
+            val ip = Settings.pcIp
+            if (ip.isBlank()) {
+                srv.appendSystemMessage("未设置电脑IP，请先设置或自动扫描")
+                return
+            }
+            srv.appendSystemMessage("正在测试连接…")
+            srv.scope.launch {
+                Sender.postCommand(ip, Settings.pcPort, "/e ${ChatMessage.PING_TEXT_TEST}")
+            }
+        }
+
         // ---- 消息入口（HTTP 服务器回调） ----
 
         /** 电脑端 POST 过来的消息统一在这里处理 */
@@ -135,16 +149,25 @@ class RelayService : Service() {
             val srv = instance ?: return
             if (msg.isInternal()) {
                 when {
-                    // 心跳回传 → 确认在线
-                    msg.content == ChatMessage.PING_TEXT -> srv.onPingAck()
+                    // 启动验证回传 → 确认在线（静默）
+                    msg.content == ChatMessage.PING_TEXT_ONLINE -> srv.onPingAck()
+                    // 测试验证回传 → 屏幕显示"小树枝在线中"
+                    msg.content == ChatMessage.PING_TEXT_TEST -> srv.onTestAck()
                     // 发现电脑回传 → 解析出电脑 IP
                     msg.content.startsWith(ChatMessage.DISCOVER_PREFIX) -> srv.onDiscoverAck(msg.content)
                 }
                 return // 内部消息静默处理：不显示、不通知
             }
-            // 真实消息：显示 + 通知
+            // 真实消息：显示；App 在前台时只响通知音效不弹通知，后台时弹通知
             AppState.messages.add(msg)
-            srv.applicationContext?.let { Notifier.showMessage(it, msg) }
+            val ctx = srv.applicationContext
+            if (ctx != null) {
+                if (AppState.foreground) {
+                    Notifier.playMessageSound(ctx)
+                } else {
+                    Notifier.showMessage(ctx, msg)
+                }
+            }
         }
 
         private fun nowTime(): String =
@@ -158,8 +181,7 @@ class RelayService : Service() {
         instance = this
         startHttpServer()
         refreshServerAddress()
-        startHeartbeat()
-        // 启动时立即尝试连接电脑，不用等心跳循环的第一个间隔（离线时 60 秒）
+        // 启动时立即尝试连接电脑
         connectOnStart()
     }
 
@@ -173,14 +195,27 @@ class RelayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // 服务停止时告知电脑端已离线（用独立线程，scope 即将取消）
+        val ip = Settings.pcIp
+        if (ip.isNotBlank()) {
+            val port = Settings.pcPort
+            Thread {
+                Sender.postCommand(ip, port, "/e ${ChatMessage.PING_TEXT_OFFLINE}")
+            }.start()
+        }
         scope.cancel()
-        heartbeatJob?.cancel()
         pingTimeoutJob?.cancel()
         server?.stop()
         server = null
         AppState.serverRunning = false
         AppState.serverAddress = ""
         if (instance === this) instance = null
+    }
+
+    /** 用户从最近任务划掉 App 时，跟随停止服务（不再后台收消息弹提醒） */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        stopSelf()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -220,38 +255,27 @@ class RelayService : Service() {
         }
     }
 
-    // ---------- 心跳 ----------
+    // ---------- 连接验证 ----------
 
-    /** 启动时立即尝试连接电脑：有已保存的电脑 IP 就马上发验证，否则提示去设置 */
+    /** 启动时立即尝试连接电脑：有已保存的电脑 IP 就马上发验证（静默，无"正在连接"提示），否则提示去设置 */
     private fun connectOnStart() {
         val ip = Settings.pcIp
         if (ip.isBlank()) {
             appendSystemMessage("未设置电脑IP，请到设置中填写或自动扫描")
             return
         }
-        appendSystemMessage("正在连接电脑 $ip …")
         sendPing()
     }
 
-    private fun startHeartbeat() {
-        heartbeatJob?.cancel()
-        heartbeatJob = scope.launch {
-            while (isActive) {
-                // 在线：10 分钟一次；离线：60 秒重试
-                val interval = if (AppState.online) 10 * 60_000L else 60_000L
-                delay(interval)
-                sendPing()
-            }
-        }
-    }
-
-    /** 发送心跳 "/e 菲奥在吗"，20 秒未收到回传 → 离线 */
+    /** 发送验证 "/e 菲奥已上线"（延迟 1 秒），20 秒未收到回传 → 离线 */
     private fun sendPing() {
         val ip = Settings.pcIp
         if (ip.isBlank()) return
         pingTimeoutJob?.cancel()
         pingTimeoutJob = scope.launch {
-            Sender.postCommand(ip, Settings.pcPort, "/e ${ChatMessage.PING_TEXT}")
+            // 启动时延迟一秒再发送，等界面就绪
+            delay(1_000)
+            Sender.postCommand(ip, Settings.pcPort, "/e ${ChatMessage.PING_TEXT_ONLINE}")
             delay(20_000)
             if (AppState.online) {
                 setOnline(false)
@@ -259,10 +283,28 @@ class RelayService : Service() {
         }
     }
 
-    /** 收到心跳回传 */
+    /** 收到启动验证回传：启动时首次自动连接成功静默置在线，之后的状态变化正常提醒 */
     private fun onPingAck() {
         pingTimeoutJob?.cancel()
-        if (!AppState.online) setOnline(true)
+        if (!AppState.online) {
+            if (silentFirstConnect) {
+                // 启动自动连接成功：静默，不弹"已连接"提醒
+                silentFirstConnect = false
+                AppState.online = true
+            } else {
+                setOnline(true)
+            }
+        }
+    }
+
+    /** 收到测试验证回传：屏幕显示"小树枝在线中"（不弹通知）；顺带确认在线状态 */
+    private fun onTestAck() {
+        pingTimeoutJob?.cancel()
+        if (!AppState.online) {
+            silentFirstConnect = false
+            AppState.online = true
+        }
+        appendSystemMessage("小树枝在线中")
     }
 
     /** 收到发现电脑回传，解析电脑 IP */

@@ -20,6 +20,9 @@ object AppState {
     /** 是否已与电脑建立连接（顶部"在线/离线"） */
     var online by mutableStateOf(false)
 
+    /** 主界面是否在前台（在前台时新消息只响音效不弹通知） */
+    var foreground by mutableStateOf(false)
+
     /** HTTP 服务器是否在运行 */
     var serverRunning by mutableStateOf(false)
 

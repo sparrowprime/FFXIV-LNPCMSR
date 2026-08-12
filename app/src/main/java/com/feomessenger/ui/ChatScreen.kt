@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
@@ -36,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -133,6 +135,18 @@ private fun TopBar(onOpenSettings: () -> Unit) {
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
             modifier = Modifier.weight(1f),
+        )
+        // 测试连接按钮（设置按钮左边）：发送"菲奥在吗"，回传后在屏幕显示"小树枝在线中"
+        Text(
+            text = "测试",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            modifier = Modifier
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color(0xFF00BFFF))
+                .padding(horizontal = 12.dp, vertical = 5.dp)
+                .clickable { RelayService.testConnection() },
         )
         IconButton(onClick = onOpenSettings) {
             Icon(Icons.Default.Settings, contentDescription = "设置", tint = Color.White)
