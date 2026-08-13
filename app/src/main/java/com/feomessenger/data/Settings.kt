@@ -132,9 +132,10 @@ object Settings {
 
     // ---------- 颜色 ----------
 
-    /** 读取某消息类型颜色；未知类型返回灰白 */
+    /** 读取某消息类型颜色；未知类型返回灰白。贝类频道（贝1~8 / 贝1 / 部队贝等）统一映射到配置 key "贝1~8"，与频道定义颜色同步 */
     fun typeColor(type: String): Int {
-        return sp.getInt("color_$type", DEFAULT_TYPE_COLORS[type] ?: 0xFFE0E0E0.toInt())
+        val key = if (type.contains("贝")) "贝1~8" else type
+        return sp.getInt("color_$key", DEFAULT_TYPE_COLORS[key] ?: 0xFFE0E0E0.toInt())
     }
 
     /** 修改某消息类型颜色 */
