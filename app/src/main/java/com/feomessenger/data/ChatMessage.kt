@@ -12,14 +12,16 @@ package com.feomessenger.data
  * }
  */
 data class ChatMessage(
-    /** 消息类型：小队 / 私聊 / 贝1~8 / 系统 / 默语（也允许其他自定义值） */
+    /** 消息类型：小队 / 私聊 / 跨服贝1~8 / 系统 / 默语（也允许其他自定义值） */
     val type: String,
-    /** 发言的玩家名字；系统类消息为空字符串 */
+    /** 发言的玩家名字；系统类消息为空字符串（自己发送的消息为"发送"） */
     val player: String,
     /** 消息时间，如 22:23:24 */
     val time: String,
     /** 消息内容 */
     val content: String,
+    /** 频道标注名（仅自己发送的消息填写，如"小队"；收到的消息从 type 推导） */
+    val channel: String = "",
 ) {
     /** 是否是内部验证消息（启动验证 / 测试验证 / 发现电脑），不显示、不通知 */
     fun isInternal(): Boolean =

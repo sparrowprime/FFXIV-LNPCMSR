@@ -20,12 +20,12 @@ object Settings {
 
     /** 默认消息颜色（ARGB），按消息类型 */
     private val DEFAULT_TYPE_COLORS = mapOf(
-        "小队" to 0xFF2196F3.toInt(),   // 蓝
-        "私聊" to 0xFF9C27B0.toInt(),   // 紫
-        "贝1~8" to 0xFF80CBC4.toInt(),  // 浅绿
-        "系统" to 0xFFE0E0E0.toInt(),   // 灰白
-        "默语" to 0xFF4CAF50.toInt(),   // 绿
-        "我" to 0xFFFFFFFF.toInt(),     // 白（自己发送的消息）
+        "小队" to 0xFF2196F3.toInt(),       // 蓝
+        "私聊" to 0xFF9C27B0.toInt(),       // 紫
+        "跨服贝1~8" to 0xFF80CBC4.toInt(),  // 浅绿
+        "系统" to 0xFFE0E0E0.toInt(),       // 灰白
+        "默语" to 0xFF4CAF50.toInt(),       // 绿
+        "我" to 0xFFFFFFFF.toInt(),         // 白（自己发送的消息）
     )
 
     /** 默认界面颜色 */
@@ -132,9 +132,9 @@ object Settings {
 
     // ---------- 颜色 ----------
 
-    /** 读取某消息类型颜色；未知类型返回灰白。贝类频道（贝1~8 / 贝1 / 部队贝等）统一映射到配置 key "贝1~8"，与频道定义颜色同步 */
+    /** 读取某消息类型颜色；未知类型返回灰白。贝类频道（跨服贝1~8 / 贝1 / 部队贝等）统一映射到配置 key "跨服贝1~8"，与频道定义颜色同步 */
     fun typeColor(type: String): Int {
-        val key = if (type.contains("贝")) "贝1~8" else type
+        val key = if (type.contains("贝")) "跨服贝1~8" else type
         return sp.getInt("color_$key", DEFAULT_TYPE_COLORS[key] ?: 0xFFE0E0E0.toInt())
     }
 

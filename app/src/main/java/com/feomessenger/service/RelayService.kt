@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.content.ContextCompat
 import com.feomessenger.AppState
+import com.feomessenger.data.Channels
 import com.feomessenger.data.ChatMessage
 import com.feomessenger.data.Settings
 import com.feomessenger.net.RelayHttpServer
@@ -68,7 +69,7 @@ class RelayService : Service() {
 
         // ---- 对外功能入口（UI 调用） ----
 
-        /** 发送一条聊天消息（自动加前缀，本地显示"我"） */
+        /** 发送一条聊天消息（自动加前缀，本地显示"发送"+频道标注） */
         fun sendMessage(text: String) {
             val srv = instance ?: return
             val ip = Settings.pcIp
@@ -78,8 +79,8 @@ class RelayService : Service() {
             }
             val prefix = Settings.currentPrefix
             val full = if (prefix.isEmpty()) text else "$prefix $text"
-            // 本地立即显示自己发的消息（颜色"我"）
-            AppState.messages.add(ChatMessage("我", "我", nowTime(), text))
+            // 本地立即显示自己发的消息（显示名"发送"，颜色"我"，标注发送频道）
+            AppState.messages.add(ChatMessage("我", "发送", nowTime(), text, Channels.prefixLabel(prefix)))
             srv.scope.launch {
                 Sender.postCommand(ip, Settings.pcPort, full)
             }

@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.feomessenger.AppState
+import com.feomessenger.data.Channels
 import com.feomessenger.data.ChatMessage
 import com.feomessenger.data.Settings
 import com.feomessenger.service.RelayService
@@ -163,8 +164,19 @@ private fun ChatLine(msg: ChatMessage) {
         msg.type == "系统" -> "系统消息"
         else -> msg.type
     }
+    // 频道标注：自己发送的消息用发送时记录的 channel；收到的玩家消息按类型推导；系统消息不标注
+    val channelTag = msg.channel.ifEmpty {
+        if (msg.player.isNotEmpty()) Channels.label(msg.type) else ""
+    }
+    // 时间冒号统一为英文半角（电脑端可能发来全角），展示无多余空格
+    val displayTime = msg.time.replace('：', ':')
+    val line = buildString {
+        append("[${displayTime}]")
+        if (channelTag.isNotEmpty()) append("[${channelTag}]")
+        append("${label}：${msg.content}")
+    }
     Text(
-        text = "[${msg.time}] $label：${msg.content}",
+        text = line,
         color = Color(Settings.typeColor(msg.type)),
         fontFamily = FontFamily.Monospace,
         fontSize = 14.sp,
@@ -217,10 +229,25 @@ private fun BottomBar(
                 Settings.getPrefixes().asReversed().forEach { item ->
                     DropdownMenuItem(
                         text = {
-                            Text(
-                                text = if (item.isEmpty()) "无前缀" else item,
-                                color = Color(prefixColorOf(item)), // 每项用各自频道颜色
-                            )
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = if (item.isEmpty()) "无前缀" else item,
+                                    color = Color(prefixColorOf(item)), // 每项用各自频道颜色
+                                    modifier = Modifier.weight(1f),     // 前缀靠左，右侧标注右对齐
+                                )
+                                // 频道标注（无前缀/自定义前缀不标注）
+                                val channel = Channels.prefixLabel(item)
+                                if (channel.isNotEmpty()) {
+                                    Text(
+                                        text = "[$channel]",
+                                        color = Color(0xFFB0B0B0), // 标注用灰色弱化
+                                        fontSize = 11.sp,
+                                    )
+                                }
+                            }
                         },
                         onClick = {
                             Settings.currentPrefix = item
@@ -272,7 +299,7 @@ private fun prefixColorOf(prefix: String): Int = when {
     prefix == "/p" -> Settings.typeColor("小队")     // 小队 → 蓝
     prefix == "/e" -> Settings.typeColor("默语")     // 默语 → 绿
     prefix == "/r" -> Settings.typeColor("私聊")     // 回复 → 紫
-    prefix.startsWith("/cwl") -> Settings.typeColor("贝1~8") // 跨服贝 → 浅绿
+    prefix.startsWith("/cwl") -> Settings.typeColor("跨服贝1~8") // 跨服贝 → 浅绿
     else -> Settings.customPrefixColor(prefix)       // 自定义前缀 → 用户自定义颜色（默认白）
 }
 

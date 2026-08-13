@@ -12,8 +12,8 @@ android {
         applicationId = "com.feomessenger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 16
-        versionName = "1.1.1"
+        versionCode = 18
+        versionName = "1.2.1"
     }
 
     buildTypes {
